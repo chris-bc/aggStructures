@@ -1,0 +1,87 @@
+Class'ns
+Employment class
+Foreign ownership
+ANZSIC
+
+Levels
+All businesses
+Employment Class
+Foreign Ownership
+ANZSIC
+Employment Class by Foreign Ownership
+Employment Class by ANZSIC
+Foreign Ownership by ANZSIC
+Employment Class by Foreign Ownership by ANZSIC
+
+AggItems
+All businesses (rule 1=1)
+(AggItem for each codeItem in employment class (rule x=codeValue))
+(AggItem for each codeItem in foreign ownersihp (rule x=codeValue))
+(AggItem for each codeItem in ANZSIC (rule x=codeValue))
+(AggItem for each combination of employment class & foreign ownership)
+As above for empClassXANZSIC, forOwnXANZSIC, empClassXforOwnXANZSIC
+
+CSV - URN, name, codeValue
+
+foreach empClass
+	create eItem
+foreach forOwn
+	create fItem
+foreach anzsic
+	create aItem
+foreach empClass, forOwn
+	create efItem
+foreach empClass, anzsic
+	create eaItem
+foreach forOwn, anzsic
+	create faItem
+foreach e,f,a
+	create efaItem (no parent)
+foreach efItem
+	foreach efaItem
+		if efa.eid=ef.eid and efa.fid=ef.fid append to parent
+foreach ea...
+foreach fa...
+
+our (accuracy sprint) example used a rule of area in (1,2) for e.g. rather than area = 9.
+corollary => hierarchy specs must be based on survey's level of coding - lowest level of aggregation? or survey-specific? Do HS need to cater for any level of disaggregation e.g. indRV in 'k',9,91,910,911,...92,921,...
+
+Change to CodeLists:
+- Capture parent (URN, Value, whatever)
+- Capture level
+- Capture RV (via Concept via Variable)
+
+Change to logic:
+- Assume ordered by level
+- If no input from SMEs disaggregate CL levels ahead of HS levels (no difference to HS levels, simply include for e.g. ANZSIC Div and SubDiv in outputs, with rules capturing appropriately)
+
+survey DS contains A06 class => need rules to specify classes
+- read data into levels
+- class 5 - easy
+- class 4 - find things with my parent value and add them to my rule
+- class 3 - find things with my parent value and add their set to my rule
+- etc.
+
+aLevels = []
+aLevel = 0
+for a in anzsic:
+	if a.level > aLevel:
+		aLevel = aLevel + 1
+		aLevels.append([])
+	aLevels[aLevel-1].append({
+		"id": aiId,
+		"name": a[2],
+		etc.
+		"value": a[x],
+		"parent": a[y]}
+for i in range(len(aLevels), -1, -1):
+	for j in range(aLevels[i]):
+		if i == len(aLevels)-1:
+			aLevels[i][j]["selector"] = aLevels[i][j]["value"]
+		else:
+			# Find values of children with me as their parent
+			childValues = []
+			for k in range(len(aLevels[i+1])):
+				if aLevels[i+1][k]["parent"] == aLevels[i][j]["value"]:
+					childValues.append(aLevels[i+1][k]["selector"])
+			aLevels[i][j]["selector"] = ','.join(childValues)
