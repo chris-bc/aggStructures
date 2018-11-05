@@ -298,36 +298,3 @@ for f in fAggItems:
 for a in aAggItems:
 	writer.writerow(['CodeItem', 'CD-'+format(a["codes"][0], '05'), a["codeUrn"]])
 ofile.close()
-
-## Agg Items
-#aiId = 1
-## Start with the basic
-#print ",AggregationItem,AI-"+str(aiId)+",All businesses,All businesses,,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-1,,,,,CodeItem,CD-x,,\r\n"
-#
-#for row in empClass:
-#	aiId=aiId+1
-#	print ",AggregationItem,AI-"+str(aiId)+","+row[1]+","+row[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-2,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for row in forOwn:
-#	aiId=aiId+1
-#	print ",AggregationItem,AI-"+str(aiId)+","+row[1]+","+row[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-3,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for row in anzsic:
-#	aiId=aiId+1
-#	print ",AggregationItem,AI-"+str(aiId)+","+row[1]+","+row[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-4,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for eItem in empClass:
-#	for fItem in forOwn:
-#		aiId=aiId+1
-#		print ",AggregationItem,AI-"+str(aiId)+","+eItem[1]+" by "+fItem[1]+","+eItem[1]+" by "+fItem[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-5,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for eItem in empClass:
-#	for aItem in anzsic:
-#		aiId=aiId+1
-#		print ",AggregationItem,AI-"+str(aiId)+","+eItem[1]+" by "+aItem[1]+","+eItem[1]+" by "+aItem[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-6,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for fItem in forOwn:
-#	for aItem in anzsic:
-#		aiId=aiId+1
-#		print ",AggregationItem,AI-"+str(aiId)+","+fItem[1]+" by "+aItem[1]+","+fItem[1]+" by "+aItem[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HierarchyLevel,L-7,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#for eItem in empClass:
-#	for fItem in forOwn:
-#		for aItem in anzsic:
-#			aiId=aiId+1
-#			print ",AggregationItem,AI-"+str(aiId)+","+eItem[1]+" by "+fItem[1]+" by "+aItem[1]+","+eItem[1]+" by "+fItem[1]+" by "+aItem[1]+",,"+str(aiId)+",,,Rule,R-"+str(aiId)+",HeararchyLevel,L-8,,,AggregationItem,AI-x,CodeItem,CD-x,,\r\n"
-#
