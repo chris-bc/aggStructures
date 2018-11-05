@@ -1,4 +1,19 @@
 import csv
+import sys
+
+# Prepare primary output file
+outFileName = 'output.csv'
+rFileName = 'relationships.csv'
+if (len(sys.argv) > 1):
+	outFileName = sys.argv[1]
+	if (len(sys.argv) > 2):
+		rFileName = sys.argv[2]
+outFile = open(outFileName, "wb")
+outWriter = csv.writer(outFile)
+
+print "Writing MBLT load file to " + outFileName
+print "Writing MBLT relationships file to " + rFileName
+print "Processing levels..."
 
 # Determine levels
 classns = ["Employment Class","Business Foreign Ownership","ANZSIC"]
@@ -19,8 +34,8 @@ level4 = []
 level4.append(classns[0]+" by "+classns[1]+" by "+classns[2])
 levels.append(level4)
 
-# Print MBLT Level header
-print "HEADER:3.2.1:HierarchyLevel:7,Class:,Id:,attr:Name,attr:Description,attr:AltId.AlternateID.id,attr:AppliesTo.ClassReference.id,attr:IsMemberOf.GroupingMembership.id,attr:PrincipalPath,relType:HasValuesFrom,relId:HasValuesFrom,relType:IsCopyOf,relId:IsCopyOf,relType:IspartofList,relId:IspartofList,relType:MayBeDefinedBy,relId:MayBeDefinedBy"
+# Write MBLT Level header
+outWriter.writerow(['HEADER:3.2.1:HierarchyLevel:7','Class:','Id:','attr:Name','attr:Description','attr:AltId.AlternateID.id','attr:AppliesTo.ClassReference.id','attr:IsMemberOf.GroupingMembership.id','attr:PrincipalPath','relType:HasValuesFrom','relId:HasValuesFrom','relType:IsCopyOf','relId:IsCopyOf','relType:IspartofList','relId:IspartofList','relType:MayBeDefinedBy','relId:MayBeDefinedBy'])
 
 # Assign level IDs, principal paths (first path in a level) and parents
 levelCount = 1
@@ -42,12 +57,14 @@ for level in levels:
 			parentType = "HierarchyLevel"
 			parentId = "L-"+str(lastParentId)
 
-		print ",HierarchyLevel,L-"+str(levelId)+","+item+","+item+",,,,"+principal+",,,,,"+parentType+","+parentId+",,"
+		outWriter.writerow([None,'HierarchyLevel','L-'+str(levelId),item,item,None,None,None,principal,None,None,None,None,parentType,parentId,None,None])
 		levelId = levelId + 1
 		itemInLevel = itemInLevel + 1
 	levelCount = levelCount + 1
 	lastParentId = nextParentId
-print
+outWriter.writerow([])
+
+print "Parsing CodeLists..."
 
 # Read in CodeLists
 anzsic = []
@@ -75,6 +92,8 @@ with open("codeitems-employment-class.csv") as csvfile:
 	for row in reader:
 		empClass.append(row)
 
+print "Creating aggItems..."
+
 # Create AggItems and assign codeitem IDs
 eTotalCodeId = 0
 fTotalCodeId = 0
@@ -89,6 +108,8 @@ ai = {
 }
 aggItems.append(ai)
 aiId = aiId + 1
+
+print "empClass"
 
 eAggItems = []
 for eItem in empClass:
@@ -107,6 +128,8 @@ for eItem in empClass:
 		eTotalCodeId = codeId
 	codeId = codeId + 1
 
+print "forOwn"
+
 fAggItems = []
 for fItem in forOwn:
 	ai = {
@@ -124,6 +147,8 @@ for fItem in forOwn:
 		fTotalCodeId = codeId
 	codeId = codeId + 1
 
+print "ANZSIC"
+
 aAggItems = []
 for aItem in anzsic:
 	ai = {
@@ -138,6 +163,8 @@ for aItem in anzsic:
 	aAggItems.append(ai)
 	aiId = aiId + 1
 	codeId = codeId + 1
+
+print "empClass-forOwn and empClass-ANZSIC"
 
 efAggItems = []
 eaAggItems = []
@@ -170,6 +197,8 @@ for eAggItem in eAggItems:
 		eaAggItems.append(ai)
 		aiId = aiId + 1
 
+print "forOwn-ANZSIC"
+
 faAggItems = []
 for fAggItem in fAggItems:
 	for aAggItem in aAggItems:
@@ -185,6 +214,8 @@ for fAggItem in fAggItems:
 		}
 		faAggItems.append(ai)
 		aiId = aiId + 1
+
+print "Lowest level of aggregation"
 
 # Create e-f-a aggItems without parents initially - Assign them later
 efaAggItems = []
@@ -204,6 +235,8 @@ for e in eAggItems:
 			}
 			efaAggItems.append(ai)
 			aiId = aiId + 1
+
+print "Processing parents"
 
 # Assign parents to e-f-a aggItems
 for efa in efaAggItems:
@@ -227,18 +260,19 @@ for a in aAggItems:
 	a["codes"].append(eTotalCodeId)
 aggItems[0]["codes"] = [fTotalCodeId, eTotalCodeId]
 
+print "Writing aggregation items"
 
 # Finally combine all aggItem decompositions together
 aggItems = aggItems + eAggItems + fAggItems + aAggItems + efAggItems + eaAggItems + faAggItems + efaAggItems
 
-# Print MBLT header for AggItems
-print "HEADER:3.2.1:AggregationItem:3,Class:,Id:,attr:Name,attr:Description,attr:Altid.AlternateID.id,attr:Code,attr:IsMemberOf.GroupingMembership.id,attr:ProcessLogic,relType:HasFilter,relId:HasFilter,relType:HasLevel,relId:HasLevel,relType:IsCopyOf,relId:IsCopyOf,relType:IschildOf,relId:IschildOf,relType:MayReference,relId:MayReference,relType:TakesMeaningFrom,relId:TakesMeaningFrom"
+# Write MBLT header for AggItems
+outWriter.writerow(['HEADER:3.2.1:AggregationItem:3','Class:','Id:','attr:Name','attr:Description','attr:Altid.AlternateID.id','attr:Code','attr:IsMemberOf.GroupingMembership.id','attr:ProcessLogic','relType:HasFilter','relId:HasFilter','relType:HasLevel','relId:HasLevel','relType:IsCopyOf','relId:IsCopyOf','relType:IschildOf','relId:IschildOf','relType:MayReference','relId:MayReference','relType:TakesMeaningFrom','relId:TakesMeaningFrom'])
 
-# Print MBLT records for aggItems
+# Write MBLT records for aggItems
 for aggItem in aggItems:
-	print ",AggregationItem,AI-"+str(aggItem["id"])+",\""+aggItem["name"]+"\",\"",
-	print aggItem["name"]+"\",,"+str(aggItem["id"])+",,,Rule,R-"+str(aggItem["id"]),
-	print ",HierarchyLevel,L-"+str(aggItem["level"])+",,,",
+	thisRow = [None,'AggregationItem','AI-'+str(aggItem["id"]),aggItem["name"]]
+	thisRow = thisRow + [aggItem["name"],None,str(aggItem["id"]),None,None,'Rule','R-'+str(aggItem["id"])]
+	thisRow = thisRow + ['HierarchyLevel','L-'+str(aggItem["level"]),None,None]
 	extraRows = 0
 	if ("parents" in aggItem):
 		extraRows = len(aggItem["parents"])
@@ -246,7 +280,8 @@ for aggItem in aggItems:
 		extraRows = len(aggItem["codes"])
 	
 	if (extraRows == 0):
-		print ",,,,,"
+		thisRow = thisRow + [None,None,None,None,None]
+		outWriter.writerow(thisRow)
 	else:
 		firstExtra = 1
 		for i in range(extraRows):
@@ -257,38 +292,46 @@ for aggItem in aggItems:
 			if ("parents" in aggItem and i< len(aggItem["parents"])):
 				thisParent = str(aggItem["parents"][i])
 			if (firstExtra == 0):
-				print ",,,,,,,,,,,,,,,",
+				thisRow = [None,None,None,None,None,None,None,None,None,None,None,None,None,None,None]
 			firstExtra = 0
 			if (len(thisParent)>0):
-				print "AggregationItem,AI-"+thisParent+",",
+				thisRow = thisRow + ['AggregationItem','AI-'+thisParent]
 			else:
-				print ",,",
+				thisRow = thisRow + [None,None]
 			if (len(thisCode) > 0):
-				print "CodeItem,CD-"+thisCode,
+				thisRow = thisRow + ['CodeItem','CD-'+thisCode]
 			else:
-				print ",",
-			print ",,"
+				thisRow = thisRow + [None,None]
+			thisRow = thisRow + [None,None]
+			outWriter.writerow(thisRow)
 
-# Print MBLT header for rules
-print "HEADER:3.2.1:Rule:24,Class:,Id:,attr:Name,attr:Description,attr:Algorithm,attr:AltId.AlternateID.id,attr:IsMemberOf.GroupingMembership.id,attr:RuleType,attr:SystemExecutableIndicator,relType:Has,relId:Has,relType:HasInputs,relId:HasInputs,relType:HasOutputs,relId:HasOutputs,relType:IsAuthoredBy,relId:IsAuthoredBy,relType:IsCopyOf,relId:IsCopyOf,relType:IsDefinedBy,relId:IsDefinedBy"
+print "Processing rules..."
 
-# Print MBLT records for rules
+# Write MBLT header for rules
+outWriter.writerow(['HEADER:3.2.1:Rule:24','Class:','Id:','attr:Name','attr:Description','attr:Algorithm','attr:AltId.AlternateID.id','attr:IsMemberOf.GroupingMembership.id','attr:RuleType','attr:SystemExecutableIndicator','relType:Has','relId:Has','relType:HasInputs','relId:HasInputs','relType:HasOutputs','relId:HasOutputs','relType:IsAuthoredBy','relId:IsAuthoredBy','relType:IsCopyOf','relId:IsCopyOf','relType:IsDefinedBy','relId:IsDefinedBy'])
+
+# Write MBLT records for rules
 for aggItem in aggItems:
-	print ",Rule,R-"+str(aggItem["id"])+",\"Filter "+aggItem["name"]+"\",\"Filter "+aggItem["name"]+"\","+aggItem["rule"]+",,,Filter,,SystemLanguage,R,,,,,StatisticalProgram,SP-001,,,,"
+	outWriter.writerow([None,'Rule','R-'+str(aggItem["id"]),'Filter '+aggItem["name"],'Filter '+aggItem["name"],aggItem["rule"],None,None,'Filter',None,'SystemLanguage','R',None,None,None,None,'StatisticalProgram','SP-001',None,None,None,None])
 
-# Print MBLT Header for Hierarchy spec
-print "HEADER:3.2.1:HierarchySpecification:6,Class:,Id:,attr:Name,attr:Description,attr:Altid.AlternateID.id,attr:IsMemberOf.GroupingMembership.id,relType:Has,relId:Has,relType:IsBasedOn,relId:IsBasedOn,relType:IsCopyOf,relId:IsCopyOf,relType:IsImplementedAs,relId:IsImplementedAs,relType:IsIndexedAs,relId:IsIndexedAs,relType:RelatesTo,relId:RelatesTo,relType:Root,relId:Root"
+print "Processing hierarchy specification..."
 
-# Print MBLT Hierarchy Spec records
-print ",HierarchySpecification,HS-1,Businesses by employment class by foreign ownership by industry,Businesses by employment class by foreign ownership by industry,,,HierarchyLevel,L-1,,,,,,,,,,,HierarchyLevel,L-1"
-print ",,,,,,,,,,,,,,,,,,,AggregationItem,AI-1"
+# Write MBLT Header for Hierarchy spec
+outWriter.writerow(['HEADER:3.2.1:HierarchySpecification:6','Class:','Id:','attr:Name','attr:Description','attr:Altid.AlternateID.id','attr:IsMemberOf.GroupingMembership.id','relType:Has','relId:Has','relType:IsBasedOn','relId:IsBasedOn','relType:IsCopyOf','relId:IsCopyOf','relType:IsImplementedAs','relId:IsImplementedAs','relType:IsIndexedAs','relId:IsIndexedAs','relType:RelatesTo','relId:RelatesTo','relType:Root','relId:Root'])
+
+# Write MBLT Hierarchy Spec records
+outWriter.writerow([None,'HierarchySpecification','HS-1','Businesses by employment class by foreign ownership by industry','Businesses by employment class by foreign ownership by industry',None,None,'HierarchyLevel','L-1',None,None,None,None,None,None,None,None,None,None,'HierarchyLevel','L-1'])
+outWriter.writerow([None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,'AggregationItem','AI-1'])
 for l in range(7):
-	print ",,,,,,,HierarchyLevel,L-"+str(l+1)+",,,,,,,,,,,,"
+	outWriter.writerow([None,None,None,None,None,None,None,'HierarchyLevel','L-'+str(l+1),None,None,None,None,None,None,None,None,None,None,None,None])
 for a in aggItems:
-	print ",,,,,,,AggregationItem,AI-"+str(a["id"])+",,,,,,,,,,,,"
+	outWriter.writerow([None,None,None,None,None,None,None,'AggregationItem','AI-'+str(a["id"]),None,None,None,None,None,None,None,None,None,None,None,None])
+outFile.close()
+
+print "Creating relationships file " + rFileName + "..."
 
 # Output Relationships
-ofile = open('relationships.csv', "wb")
+ofile = open(rFileName, "wb")
 writer = csv.writer(ofile)
 writer.writerow(['Class','ID','URN'])
 for e in eAggItems:
