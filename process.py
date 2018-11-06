@@ -13,7 +13,6 @@ outWriter = csv.writer(outFile)
 
 print "Writing MBLT load file to " + outFileName
 print "Writing MBLT relationships file to " + rFileName
-print "Processing levels..."
 
 # Determine levels
 classns = ["Employment Class","Business Foreign Ownership","ANZSIC Division"]
@@ -72,8 +71,6 @@ for level in levels:
 	lastParentId = nextParentId
 outWriter.writerow([])
 
-print "Parsing CodeLists..."
-
 # Read in CodeLists
 anzsic = []
 with open("codeitems-anzsic.csv") as csvfile:
@@ -98,20 +95,21 @@ with open("codeitems-anzsic.csv") as csvfile:
 			i = i + 1
 		newRow.append(row[i].strip())
 		anzsic.append(newRow)
+print "Read in " + str(len(anzsic)) + " ANZSIC CodeItems"
 
 forOwn = []
 with open("codeitems-business-foreign-ownership.csv") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
 		forOwn.append(row)
+print "Read in " + str(len(forOwn)) + " " + classns[1] + " CodeItems"
 
 empClass = []
 with open("codeitems-employment-class.csv") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
 		empClass.append(row)
-
-print "Creating aggItems..."
+print "Read in " + str(len(empClass)) + " " + classns[0] + " CodeItems"
 
 # Create AggItems and assign codeitem IDs
 codeId=1
@@ -125,8 +123,6 @@ ai = {
 }
 aggItems.append(ai)
 aiId = aiId + 1
-
-print "First levels"
 
 codeLists = [empClass, forOwn, anzsic]
 aggLevels = []
@@ -176,7 +172,6 @@ for cl in range(len(codeLists)):
 		codeId = codeId + 1
 	aggLevels.append(cLevels)
 	
-	print "Processing parent-child relationships for " + classns[cl]
 	for i in range(len(cLevels)-1,-1,-1):
 		for j in range(len(cLevels[i])):
 			if i == len(cLevels)-1:
@@ -190,8 +185,12 @@ for cl in range(len(codeLists)):
 						childValues.append(cLevels[i+1][k]["selector"])
 						cLevels[i+1][k]["parents"].append(cLevels[i][j]["id"])
 				cLevels[i][j]["selector"] = ','.join(childValues)
-
-print "empClass-forOwn and empClass-ANZSIC-Div"
+	
+	# Produce some metrics
+	print "Processed aggregation items for " + classns[cl]
+	print "Number of levels: " + str(len(aggLevels[cl]))
+	for i in range(len(aggLevels[cl])):
+		print "Number of items in level " + str(i) + ": " + str(len(aggLevels[cl][i]))
 
 efAggItems = []
 eaAggItems = []
@@ -202,7 +201,7 @@ for eAggItem in aggLevels[0][1]:
 			"id":aiId,
 			"eid":eAggItem["id"],
 			"fid":fAggItem["id"],
-			"name":classnShortName[0] + ": " + eAggItem["name"] + " by " + classnShortName[1] + ": " + fAggItem["name"],
+			"name":eAggItem["name"] + " by " + fAggItem["name"],
 			"level":5,
 			"rule":eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + ") and " + fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + ")",
 			"parents":[eAggItem["id"], fAggItem["id"]],
@@ -218,7 +217,7 @@ for eAggItem in aggLevels[0][1]:
 			"id":aiId,
 			"eid":eAggItem["id"],
 			"aid":aAggItem["id"],
-			"name":classnShortName[0] + ": " + eAggItem["name"] + " by " + classnShortName[2] + ": " + aAggItem["name"],
+			"name":eAggItem["name"] + " by " + aAggItem["name"],
 			"level":6,
 			"rule":eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + ") and " + aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ")  and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 			"parents":[eAggItem["id"], aAggItem["id"]],
@@ -227,7 +226,7 @@ for eAggItem in aggLevels[0][1]:
 		eaAggItems.append(ai)
 		aiId = aiId + 1
 
-print "forOwn-ANZSIC-Div"
+print "Produced " + str(len(efAggItems)) + " e-f aggItems and " + str(len(eaAggItems)) + " e-a aggItems"
 
 faAggItems = []
 # Using level 2 of forOwn and level 1 of ANZSIC
@@ -238,7 +237,7 @@ for fAggItem in aggLevels[1][1]:
 			"id":aiId,
 			"fid":fAggItem["id"],
 			"aid":aAggItem["id"],
-			"name":classnShortName[1] + ": " + fAggItem["name"] + " by " + classnShortName[2] + ": " + aAggItem["name"],
+			"name":fAggItem["name"] + " by " + aAggItem["name"],
 			"level":7,
 			"rule":fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + ") and " + aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")",
 			"parents":[fAggItem["id"], aAggItem["id"]],
@@ -247,21 +246,23 @@ for fAggItem in aggLevels[1][1]:
 		faAggItems.append(ai)
 		aiId = aiId + 1
 
-print "ANZSIC SubDivision"
+print "Produced " + str(len(faAggItems)) + " f-a aggItems"
+
 # Use level 2 of ANZSIC and level 1 of the others
 # Use IDs already assigned for ANSZIC SubDiv
 aaAggItems = []
 for aAggItem in aggLevels[2][1]:
 	aaAggItems.append({
 		"id":aAggItem["id"],
-		"name":classnShortName[3] + ": " + aAggItem["name"],
+		"name":aAggItem["name"],
 		"level":8,
 		"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ") and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 		"parents":aAggItem["parents"],
 		"codes":aAggItem["codes"] + aggLevels[0][0][0]["codes"] + aggLevels[1][0][0]["codes"]
 	})
 
-print "Processing level 4 - EmpClass-ANZSIC-SubDiv, ForOwn-ANZSIC-SubDiv"
+print "Produced " + str(len(aaAggItems)) + " a-a aggItems"
+
 aaeAggItems = []
 aafAggItems = []
 for aAggItem in aggLevels[2][1]:
@@ -272,7 +273,7 @@ for aAggItem in aggLevels[2][1]:
 			"aaid":aAggItem["id"],
 			"eid":eAggItem["id"],
 			"eaid":"",
-			"name":classnShortName[3] + ": " + aAggItem["name"] + " by " + classnShortName[0] + ": " + eAggItem["name"],
+			"name":aAggItem["name"] + " by " + eAggItem["name"],
 			"level":9,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + " and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 			"parents":[aAggItem["id"]],
@@ -287,7 +288,7 @@ for aAggItem in aggLevels[2][1]:
 			"aaid":aAggItem["id"],
 			"faid":"",
 			"fid":fAggItem["id"],
-			"name":classnShortName[3] + ": " + aAggItem["name"] + " by " + classnShortName[1] + ": " + fAggItem["name"],
+			"name":aAggItem["name"] + " by " + fAggItem["name"],
 			"level":10,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + " and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")",
 			"parents":[aAggItem["id"]],
@@ -295,21 +296,20 @@ for aAggItem in aggLevels[2][1]:
 		})
 		aiId = aiId + 1
 
-print "Assigning parents for EmpClass-ANZSIC-SubDiv"
+print "Produced " + str(len(aaeAggItems)) + " a-a-e aggItems and " + str(len(aafAggItems)) + " a-a-f aggItems"
+
 for x in aaeAggItems:
 	for y in eaAggItems:
 		if y["eid"] == x["eid"] and y["aid"] == x["aid"]:
 			x["eaid"] = y["id"]
 			x["parents"].append(y["id"])
 
-print "Assigning parents for ForOwn-ANZSIC-SubDiv"
 for x in aafAggItems:
 	for y in faAggItems:
 		if y["fid"] == x["fid"] and y["aid"] == x["aid"]:
 			x["faid"] = y["id"]
 			x["parents"].append(y["id"])
 
-print "Processing level 4 - EmpClass-ForOwn-ANZSIC-Div"
 # Create e-f-a aggItems without parents initially - Assign them later
 efaAggItems = []
 for e in aggLevels[0][1]:
@@ -320,7 +320,7 @@ for e in aggLevels[0][1]:
 				"eid":e["id"],
 				"fid":f["id"],
 				"aid":a["id"],
-				"name":classnShortName[0] + ": " + e["name"] + " by " + classnShortName[1] + ": " + f["name"] + " by " + classnShortName[2] + ": " + a["name"],
+				"name":e["name"] + " by " + f["name"] + " by " + a["name"],
 				"level":11,
 				"rule":e["rvUrn"] + " in (" + e["selector"] + ") and " + f["rvUrn"] + " in (" + f["selector"] + ") and " + a["rvUrn"] + " in (" + a["selector"] + ")",
 				"parents":[],
@@ -329,7 +329,6 @@ for e in aggLevels[0][1]:
 			efaAggItems.append(ai)
 			aiId = aiId + 1
 
-print "Assigning parents for EmpClass-ForOwn-ANZSIC-Div"
 for efa in efaAggItems:
 	for ef in efAggItems:
 		if (efa["eid"] == ef["eid"] and efa["fid"] == ef["fid"]):
@@ -341,7 +340,7 @@ for efa in efaAggItems:
 		if (efa["fid"] == fa["fid"] and efa["aid"] == fa["aid"]):
 			efa["parents"].append(fa["id"])
 
-print "Processing level 5 - EmpClass-ForOwn-ANZSIC-SubDiv"
+print "Produced " + str(len(efaAggItems)) + " e-f-a aggItems"
 
 # Create e-f-a-subDiv aggItems without parents initially - Assign them later
 efaaAggItems = []
@@ -354,7 +353,7 @@ for e in aggLevels[0][1]:
 				"fid":f["id"],
 				"aaid":a["id"],
 				"aid":a["parents"][0],
-				"name":classnShortName[0] + ": " + e["name"] + " by " + classnShortName[1] + ": " + f["name"] + " by " + classnShortName[3] + ": " + a["name"],
+				"name":e["name"] + " by " + f["name"] + " by " + a["name"],
 				"level":12,
 				"rule":e["rvUrn"] + " in (" + e["selector"] + ") and " + f["rvUrn"] + " in (" + f["selector"] + ") and " + a["rvUrn"] + " in (" + a["selector"] +")",
 				"parents":[],
@@ -362,8 +361,6 @@ for e in aggLevels[0][1]:
 			}
 			efaaAggItems.append(ai)
 			aiId = aiId + 1
-
-print "Processing parents for EmpClass-ForOwn-ANZSIC-SubDiv"
 
 # Parents are efa, aae, aaf
 for efaa in efaaAggItems:
@@ -377,7 +374,8 @@ for efaa in efaaAggItems:
 		if (efaa["fid"] == aaf["fid"] and efaa["aaid"] == aaf["aaid"]):
 			efaa["parents"].append(aaf["id"])
 
-print "Finalising CodeItem allocations for CodeLists"
+print "Produced " + str(len(efaaAggItems)) + " e-f-a-a aggItems"
+
 # Now loop back through a,f&eAggItems and assign e/fTotalCodeId
 for e in aggLevels[0][1]:
 	e["codes"].append(aggLevels[1][0][0]["codes"][0])
@@ -396,13 +394,11 @@ for l in aggLevels[2]:
 		a["rule"] = a["rvUrn"] + " in (" + a["selector"] + ") and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
 aggItems[0]["codes"] = [aggLevels[1][0][0]["codes"][0], aggLevels[0][0][0]["codes"][0]]
 
-print "Combining aggregation items"
 for cl in aggLevels:
 	for l in cl:
 		aggItems = aggItems + l
 aggItems = aggItems + efAggItems + eaAggItems + faAggItems + aaAggItems + aaeAggItems + aafAggItems + efaAggItems + efaaAggItems
 
-print "Writing aggregation items"
 # Write MBLT header for AggItems
 outWriter.writerow(['HEADER:3.2.1:AggregationItem:3','Class:','Id:','attr:Name','attr:Description','attr:Altid.AlternateID.id','attr:Code','attr:IsMemberOf.GroupingMembership.id','attr:ProcessLogic','relType:HasFilter','relId:HasFilter','relType:HasLevel','relId:HasLevel','relType:IsCopyOf','relId:IsCopyOf','relType:IschildOf','relId:IschildOf','relType:MayReference','relId:MayReference','relType:TakesMeaningFrom','relId:TakesMeaningFrom'])
 
@@ -443,18 +439,16 @@ for aggItem in aggItems:
 			thisRow = thisRow + [None,None]
 			outWriter.writerow(thisRow)
 
-print "Writing rules..."
-
 # Write MBLT header for rules
+outWriter.writerow([])
 outWriter.writerow(['HEADER:3.2.1:Rule:24','Class:','Id:','attr:Name','attr:Description','attr:Algorithm','attr:AltId.AlternateID.id','attr:IsMemberOf.GroupingMembership.id','attr:RuleType','attr:SystemExecutableIndicator','relType:Has','relId:Has','relType:HasInputs','relId:HasInputs','relType:HasOutputs','relId:HasOutputs','relType:IsAuthoredBy','relId:IsAuthoredBy','relType:IsCopyOf','relId:IsCopyOf','relType:IsDefinedBy','relId:IsDefinedBy'])
 
 # Write MBLT records for rules
 for aggItem in aggItems:
 	outWriter.writerow([None,'Rule','R-'+str(aggItem["id"]),'Filter '+aggItem["name"],'Filter '+aggItem["name"],aggItem["rule"],None,None,'Filter',None,'SystemLanguage','R',None,None,None,None,'StatisticalProgram','SP-001',None,None,None,None])
 
-print "Processing hierarchy specification..."
-
 # Write MBLT Header for Hierarchy spec
+outWriter.writerow([])
 outWriter.writerow(['HEADER:3.2.1:HierarchySpecification:6','Class:','Id:','attr:Name','attr:Description','attr:Altid.AlternateID.id','attr:IsMemberOf.GroupingMembership.id','relType:Has','relId:Has','relType:IsBasedOn','relId:IsBasedOn','relType:IsCopyOf','relId:IsCopyOf','relType:IsImplementedAs','relId:IsImplementedAs','relType:IsIndexedAs','relId:IsIndexedAs','relType:RelatesTo','relId:RelatesTo','relType:Root','relId:Root'])
 
 # Write MBLT Hierarchy Spec records
@@ -465,8 +459,6 @@ for l in range(7):
 for a in aggItems:
 	outWriter.writerow([None,None,None,None,None,None,None,'AggregationItem','AI-'+str(a["id"]),None,None,None,None,None,None,None,None,None,None,None,None])
 outFile.close()
-
-print "Creating relationships file " + rFileName + "..."
 
 # Output Relationships
 ofile = open(rFileName, "wb")
