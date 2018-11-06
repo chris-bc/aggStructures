@@ -17,6 +17,7 @@ print "Processing levels..."
 
 # Determine levels
 classns = ["Employment Class","Business Foreign Ownership","ANZSIC Division"]
+classnShortName = ["empClass","forOwn","A06 Div","A06 SubDiv","A06 Group","A06 Class"]
 level1 = ["All Businesses"]
 levels = [level1]
 level2 = []
@@ -145,7 +146,7 @@ for cl in range(len(codeLists)):
 			# We've found a new root node
 			cLevels[0].append({
 				"id":aiId,
-				"name":ci[2].strip(),
+				"name":classnShortName[cl] + ": " + ci[2].strip(),
 				"level":2+cl,
 				"parents":[1],
 				"codes":[codeId],
@@ -162,7 +163,7 @@ for cl in range(len(codeLists)):
 			cLevels.append([])
 		cLevels[cLevel-1].append({
 			"id":aiId,
-			"name":ci[5].strip(),
+			"name":classnShortName[cl-2+cLevel] + ": " + ci[5].strip(),
 			"level":2+cl,
 			"parents":[],
 			"codes":[codeId],
@@ -176,11 +177,7 @@ for cl in range(len(codeLists)):
 	aggLevels.append(cLevels)
 	
 	print "Processing parent-child relationships for " + classns[cl]
-#	if cl==2:
-#		print "Looping through from "+str(len(cLevels)-1)+" to 0"
 	for i in range(len(cLevels)-1,-1,-1):
-#		if cl==2 and i<1:
-#			print "looping through "+str(len(cLevels[i]))+" items in level"
 		for j in range(len(cLevels[i])):
 			if i == len(cLevels)-1:
 				# Dealing with the lowest level - use the value provided
@@ -188,14 +185,8 @@ for cl in range(len(codeLists)):
 			else:
 				# Find values of children with me as their parent
 				childValues = []
-#				if cl==2 and i<1:
-#					print "looking for children in level "+str(i+1)+" with "+str(len(cLevels[i+1]))+" children"
 				for k in range(len(cLevels[i+1])):
-#					if cl==2 and i<1:
-#						print "comparing :"+cLevels[i+1][k]["parentValue"]+": with :"+cLevels[i][j]["value"]+":"
 					if cLevels[i+1][k]["parentValue"] == cLevels[i][j]["value"]:
-#						if cl==2 and i<1:
-#							print "Success! Assigning child selector and setting child parent to :"+str(cLevels[i][j]["id"])
 						childValues.append(cLevels[i+1][k]["selector"])
 						cLevels[i+1][k]["parents"].append(cLevels[i][j]["id"])
 				cLevels[i][j]["selector"] = ','.join(childValues)
@@ -211,7 +202,7 @@ for eAggItem in aggLevels[0][1]:
 			"id":aiId,
 			"eid":eAggItem["id"],
 			"fid":fAggItem["id"],
-			"name":eAggItem["name"] + " by " + fAggItem["name"],
+			"name":classnShortName[0] + ": " + eAggItem["name"] + " by " + classnShortName[1] + ": " + fAggItem["name"],
 			"level":5,
 			"rule":eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + ") and " + fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + ")",
 			"parents":[eAggItem["id"], fAggItem["id"]],
@@ -227,7 +218,7 @@ for eAggItem in aggLevels[0][1]:
 			"id":aiId,
 			"eid":eAggItem["id"],
 			"aid":aAggItem["id"],
-			"name":eAggItem["name"] + " by " + aAggItem["name"],
+			"name":classnShortName[0] + ": " + eAggItem["name"] + " by " + classnShortName[2] + ": " + aAggItem["name"],
 			"level":6,
 			"rule":eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + ") and " + aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ")  and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 			"parents":[eAggItem["id"], aAggItem["id"]],
@@ -247,7 +238,7 @@ for fAggItem in aggLevels[1][1]:
 			"id":aiId,
 			"fid":fAggItem["id"],
 			"aid":aAggItem["id"],
-			"name":fAggItem["name"] + " by " + aAggItem["name"],
+			"name":classnShortName[1] + ": " + fAggItem["name"] + " by " + classnShortName[2] + ": " + aAggItem["name"],
 			"level":7,
 			"rule":fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + ") and " + aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")",
 			"parents":[fAggItem["id"], aAggItem["id"]],
@@ -263,7 +254,7 @@ aaAggItems = []
 for aAggItem in aggLevels[2][1]:
 	aaAggItems.append({
 		"id":aAggItem["id"],
-		"name":aAggItem["name"],
+		"name":classnShortName[3] + ": " + aAggItem["name"],
 		"level":8,
 		"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ") and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 		"parents":aAggItem["parents"],
@@ -281,7 +272,7 @@ for aAggItem in aggLevels[2][1]:
 			"aaid":aAggItem["id"],
 			"eid":eAggItem["id"],
 			"eaid":"",
-			"name":aAggItem["name"] + " by " + eAggItem["name"],
+			"name":classnShortName[3] + ": " + aAggItem["name"] + " by " + classnShortName[0] + ": " + eAggItem["name"],
 			"level":9,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + " and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
 			"parents":[aAggItem["id"]],
@@ -296,7 +287,7 @@ for aAggItem in aggLevels[2][1]:
 			"aaid":aAggItem["id"],
 			"faid":"",
 			"fid":fAggItem["id"],
-			"name":aAggItem["name"] + " by " + fAggItem["name"],
+			"name":classnShortName[3] + ": " + aAggItem["name"] + " by " + classnShortName[1] + ": " + fAggItem["name"],
 			"level":10,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + " and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")",
 			"parents":[aAggItem["id"]],
@@ -329,7 +320,7 @@ for e in aggLevels[0][1]:
 				"eid":e["id"],
 				"fid":f["id"],
 				"aid":a["id"],
-				"name":e["name"] + " by " + f["name"] + " by " + a["name"],
+				"name":classnShortName[0] + ": " + e["name"] + " by " + classnShortName[1] + ": " + f["name"] + " by " + classnShortName[2] + ": " + a["name"],
 				"level":11,
 				"rule":e["rvUrn"] + " in (" + e["selector"] + ") and " + f["rvUrn"] + " in (" + f["selector"] + ") and " + a["rvUrn"] + " in (" + a["selector"] + ")",
 				"parents":[],
@@ -363,7 +354,7 @@ for e in aggLevels[0][1]:
 				"fid":f["id"],
 				"aaid":a["id"],
 				"aid":a["parents"][0],
-				"name":e["name"] + " by " + f["name"] + " by " + a["name"],
+				"name":classnShortName[0] + ": " + e["name"] + " by " + classnShortName[1] + ": " + f["name"] + " by " + classnShortName[3] + ": " + a["name"],
 				"level":12,
 				"rule":e["rvUrn"] + " in (" + e["selector"] + ") and " + f["rvUrn"] + " in (" + f["selector"] + ") and " + a["rvUrn"] + " in (" + a["selector"] +")",
 				"parents":[],
