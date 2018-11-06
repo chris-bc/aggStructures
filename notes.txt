@@ -47,7 +47,7 @@ our (accuracy sprint) example used a rule of area in (1,2) for e.g. rather than 
 corollary => hierarchy specs must be based on survey's level of coding - lowest level of aggregation? or survey-specific? Do HS need to cater for any level of disaggregation e.g. indRV in 'k',9,91,910,911,...92,921,...
 
 Change to CodeLists:
-- Capture parent (URN, Value, whatever)
+- Capture parent (Value)
 - Capture level
 - Capture RV (via Concept via Variable)
 
@@ -62,6 +62,9 @@ survey DS contains A06 class => need rules to specify classes
 - class 3 - find things with my parent value and add their set to my rule
 - etc.
 
+CodeItems is now:
+level,parentUrn,parentLabel,parentValue,ciUrn,ciLabel,ciValue
+
 aLevels = []
 aLevel = 0
 for a in anzsic:
@@ -74,7 +77,7 @@ for a in anzsic:
 		etc.
 		"value": a[x],
 		"parent": a[y]}
-for i in range(len(aLevels), -1, -1):
+for i in range(len(aLevels)-1, -1, -1):
 	for j in range(aLevels[i]):
 		if i == len(aLevels)-1:
 			aLevels[i][j]["selector"] = aLevels[i][j]["value"]
