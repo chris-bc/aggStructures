@@ -77,14 +77,25 @@ print "Parsing CodeLists..."
 anzsic = []
 with open("codeitems-anzsic.csv") as csvfile:
 	reader = csv.reader(csvfile)
-	newRow = []
 	for row in reader:
+		newRow = []
 		# Fix issues caused by commas in the description
 		newRow.append(row[0])
 		newRow.append(row[1])
-		for i in range(len(row)-3):
-			newRow[1] = newRow[1] + "," + row[i+2]
-		newRow.append(row[len(row)-1])
+		newRow.append(row[2].strip())
+		i = 3
+		while len(row[i].strip()) > 1 and not row[i].strip().isdigit():
+			# It must be a spurious comma
+			newRow[len(newRow)-1] = newRow[len(newRow)-1] + ", " + row[i].strip()
+			i = i + 1
+		# Finally we've come to the parent code value
+		for n in range(3):
+			newRow.append(row[i].strip())
+			i = i + 1
+		while (not row[i].strip().isdigit()):
+			newRow[len(newRow)-1] = newRow[len(newRow)-1] + ", " + row[i].strip()
+			i = i + 1
+		newRow.append(row[i].strip())
 		anzsic.append(newRow)
 
 forOwn = []
@@ -119,8 +130,9 @@ print "First levels"
 codeLists = [empClass, forOwn, anzsic]
 aggLevels = []
 for cl in range(len(codeLists)):
-	cLevels = []
+	cLevels = [[]]
 	cLevel = 0
+	lastRootValue = ""
 	tempRV = ""
 	if cl == 0:
 		tempRV = "empClassRV"
@@ -129,25 +141,24 @@ for cl in range(len(codeLists)):
 	elif cl == 2:
 		tempRV = "anzsicRV"
 	for ci in codeLists[cl]:
+		if int(ci[0]) == 2 and ci[3].strip() != lastRootValue:
+			# We've found a new root node
+			cLevels[0].append({
+				"id":aiId,
+				"name":ci[2].strip(),
+				"level":2+cl,
+				"parents":[1],
+				"codes":[codeId],
+				"codeUrn":ci[1].strip(),
+				"value":ci[3].strip(),
+				"rvUrn":tempRV
+			})
+			aiId = aiId + 1
+			codeId = codeId + 1
+			lastRootValue = ci[3].strip()
 		if int(ci[0]) > cLevel:
-			if cLevel == 0:
-				# We're dealing with the first entry. Create the root node
-				ai = {
-					"id":aiId,
-					"name":ci[2].strip(),
-					"level":2 + cl,
-					"parents":[1],
-					"codes":[codeId],
-					"codeUrn":ci[1].strip(),
-					"value":ci[3].strip(),
-					"rvUrn":tempRV
-				}
-				cLevels.append([ai])
-				aiId = aiId + 1
-				codeId = codeId + 1
-				cLevel = cLevel + 1
 			# Create a new level in cLevels for the current level of the CodeList
-			cLevel = cLevel + 1
+			cLevel = int(ci[0])
 			cLevels.append([])
 		cLevels[cLevel-1].append({
 			"id":aiId,
@@ -165,7 +176,11 @@ for cl in range(len(codeLists)):
 	aggLevels.append(cLevels)
 	
 	print "Processing parent-child relationships for " + classns[cl]
+#	if cl==2:
+#		print "Looping through from "+str(len(cLevels)-1)+" to 0"
 	for i in range(len(cLevels)-1,-1,-1):
+#		if cl==2 and i<1:
+#			print "looping through "+str(len(cLevels[i]))+" items in level"
 		for j in range(len(cLevels[i])):
 			if i == len(cLevels)-1:
 				# Dealing with the lowest level - use the value provided
@@ -173,12 +188,17 @@ for cl in range(len(codeLists)):
 			else:
 				# Find values of children with me as their parent
 				childValues = []
+#				if cl==2 and i<1:
+#					print "looking for children in level "+str(i+1)+" with "+str(len(cLevels[i+1]))+" children"
 				for k in range(len(cLevels[i+1])):
+#					if cl==2 and i<1:
+#						print "comparing :"+cLevels[i+1][k]["parentValue"]+": with :"+cLevels[i][j]["value"]+":"
 					if cLevels[i+1][k]["parentValue"] == cLevels[i][j]["value"]:
+#						if cl==2 and i<1:
+#							print "Success! Assigning child selector and setting child parent to :"+str(cLevels[i][j]["id"])
 						childValues.append(cLevels[i+1][k]["selector"])
 						cLevels[i+1][k]["parents"].append(cLevels[i][j]["id"])
 				cLevels[i][j]["selector"] = ','.join(childValues)
-			# TODO: Add rules here using selector plus totals for other classns
 
 print "empClass-forOwn and empClass-ANZSIC-Div"
 
@@ -382,7 +402,7 @@ for l in aggLevels[2]:
 	for a in l:
 		a["codes"].append(aggLevels[1][0][0]["codes"][0])
 		a["codes"].append(aggLevels[0][0][0]["codes"][0])
-		a["rule"] = aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
+		a["rule"] = a["rvUrn"] + " in (" + a["selector"] + ") and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
 aggItems[0]["codes"] = [aggLevels[1][0][0]["codes"][0], aggLevels[0][0][0]["codes"][0]]
 
 print "Combining aggregation items"
