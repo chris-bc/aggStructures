@@ -124,9 +124,9 @@ for cl in range(len(codeLists)):
 	tempRV = ""
 	if cl == 0:
 		tempRV = "empClassRV"
-	else if cl == 1:
+	elif cl == 1:
 		tempRV = "forOwnRV"
-	else if cl == 2:
+	elif cl == 2:
 		tempRV = "anzsicRV"
 	for ci in codeLists[cl]:
 		if ci[0] > cLevel:
@@ -166,7 +166,7 @@ for cl in range(len(codeLists)):
 	
 	print "Processing parent-child relationships for " + classns[cl]
 	for i in range(len(cLevels)-1,-1,-1):
-		for j in range(cLevels[i]):
+		for j in range(len(cLevels[i])):
 			if i == len(cLevels)-1:
 				# Dealing with the lowest level - use the value provided
 				cLevels[i][j]["selector"] = cLevels[i][j]["value"]
@@ -264,7 +264,7 @@ for aAggItem in aggLevels[2][1]:
 			"name":aAggItem["name"] + " by " + eAggItem["name"],
 			"level":9,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + eAggItem["rvUrn"] + " in (" + eAggItem["selector"] + " and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")",
-			"parents":aAggItem["id"],
+			"parents":[aAggItem["id"]],
 			"codes":aAggItem["codes"] + eAggItem["codes"] + aggLevels[1][0][0]["codes"]
 		})
 		aiId = aiId + 1
@@ -279,19 +279,19 @@ for aAggItem in aggLevels[2][1]:
 			"name":aAggItem["name"] + " by " + fAggItem["name"],
 			"level":10,
 			"rule":aAggItem["rvUrn"] + " in (" + aAggItem["selector"] + ") and " + fAggItem["rvUrn"] + " in (" + fAggItem["selector"] + " and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")",
-			"parents":aAggItem["parents"],
+			"parents":[aAggItem["id"]],
 			"codes":aAggItem["codes"] + fAggItem["codes"] + aggLevels[0][0][0]["codes"]
 		})
 		aiId = aiId + 1
 
-print "Assigning parents for EmpClass-ANZSIC-SubDiv
+print "Assigning parents for EmpClass-ANZSIC-SubDiv"
 for x in aaeAggItems:
 	for y in eaAggItems:
 		if y["eid"] == x["eid"] and y["aid"] == x["aid"]:
 			x["eaid"] = y["id"]
 			x["parents"].append(y["id"])
 
-print "Assigning parents for ForOwn-ANZSIC-SubDiv
+print "Assigning parents for ForOwn-ANZSIC-SubDiv"
 for x in aafAggItems:
 	for y in faAggItems:
 		if y["fid"] == x["fid"] and y["aid"] == x["aid"]:
@@ -342,7 +342,7 @@ for e in aggLevels[0][1]:
 				"eid":e["id"],
 				"fid":f["id"],
 				"aaid":a["id"],
-				"aid":a["parents"][0]
+				"aid":a["parents"][0],
 				"name":e["name"] + " by " + f["name"] + " by " + a["name"],
 				"level":12,
 				"rule":e["rvUrn"] + " in (" + e["selector"] + ") and " + f["rvUrn"] + " in (" + f["selector"] + ") and " + a["rvUrn"] + " in (" + a["selector"] +")",
@@ -370,14 +370,19 @@ print "Finalising CodeItem allocations for CodeLists"
 # Now loop back through a,f&eAggItems and assign e/fTotalCodeId
 for e in aggLevels[0][1]:
 	e["codes"].append(aggLevels[1][0][0]["codes"][0])
-aggLevels[0][0][0]["codes"].append(aggLevels[1][0][0]["codes"][0]
+	e["rule"] = e["rvUrn"] + " in (" + e["selector"] + ") and " + aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")"
+aggLevels[0][0][0]["codes"].append(aggLevels[1][0][0]["codes"][0])
+aggLevels[0][0][0]["rule"] = aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ")"
 for f in aggLevels[1][1]:
 	f["codes"].append(aggLevels[0][0][0]["codes"][0])
+	f["rule"] = f["rvUrn"] + " in (" + f["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
 aggLevels[1][0][0]["codes"].append(aggLevels[0][0][0]["codes"][0])
+aggLevels[1][0][0]["rule"] = aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
 for l in aggLevels[2]:
 	for a in l:
 		a["codes"].append(aggLevels[1][0][0]["codes"][0])
 		a["codes"].append(aggLevels[0][0][0]["codes"][0])
+		a["rule"] = aggLevels[1][0][0]["rvUrn"] + " in (" + aggLevels[1][0][0]["selector"] + ") and " + aggLevels[0][0][0]["rvUrn"] + " in (" + aggLevels[0][0][0]["selector"] + ")"
 aggItems[0]["codes"] = [aggLevels[1][0][0]["codes"][0], aggLevels[0][0][0]["codes"][0]]
 
 print "Combining aggregation items"
@@ -434,6 +439,7 @@ outWriter.writerow(['HEADER:3.2.1:Rule:24','Class:','Id:','attr:Name','attr:Desc
 
 # Write MBLT records for rules
 for aggItem in aggItems:
+	print "processing "+str(aggItem["id"])+" with name "+aggItem["name"]
 	outWriter.writerow([None,'Rule','R-'+str(aggItem["id"]),'Filter '+aggItem["name"],'Filter '+aggItem["name"],aggItem["rule"],None,None,'Filter',None,'SystemLanguage','R',None,None,None,None,'StatisticalProgram','SP-001',None,None,None,None])
 
 print "Processing hierarchy specification..."
