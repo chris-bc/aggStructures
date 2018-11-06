@@ -129,7 +129,7 @@ for cl in range(len(codeLists)):
 	elif cl == 2:
 		tempRV = "anzsicRV"
 	for ci in codeLists[cl]:
-		if ci[0] > cLevel:
+		if int(ci[0]) > cLevel:
 			if cLevel == 0:
 				# We're dealing with the first entry. Create the root node
 				ai = {
@@ -439,7 +439,6 @@ outWriter.writerow(['HEADER:3.2.1:Rule:24','Class:','Id:','attr:Name','attr:Desc
 
 # Write MBLT records for rules
 for aggItem in aggItems:
-	print "processing "+str(aggItem["id"])+" with name "+aggItem["name"]
 	outWriter.writerow([None,'Rule','R-'+str(aggItem["id"]),'Filter '+aggItem["name"],'Filter '+aggItem["name"],aggItem["rule"],None,None,'Filter',None,'SystemLanguage','R',None,None,None,None,'StatisticalProgram','SP-001',None,None,None,None])
 
 print "Processing hierarchy specification..."
